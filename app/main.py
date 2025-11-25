@@ -42,6 +42,21 @@ def create_app() -> FastAPI:
     application.include_router(auth_router, prefix="/api/v1")
     application.include_router(import_export_router, prefix="/api/v1")
     application.include_router(statistics_router, prefix="/api/v1")
+    
+    # Startup event: Initialize database tables
+    @application.on_event("startup")
+    async def startup_event():
+        """Create database tables on startup if they don't exist"""
+        from app.core.database import engine, Base
+        
+        try:
+            async with engine.begin() as conn:
+                # Create all tables
+                await conn.run_sync(Base.metadata.create_all)
+            print("✓ Database tables initialized successfully")
+        except Exception as e:
+            print(f"⚠ Database initialization error: {e}")
+            # Don't fail startup - tables might already exist
 
     return application
 
