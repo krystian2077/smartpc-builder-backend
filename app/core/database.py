@@ -7,6 +7,13 @@ database_url = settings.database_url
 if not database_url:
     # Use SQLite for development
     database_url = "sqlite+aiosqlite:///./smartpc.db"
+else:
+    # Fix for Render.com: Convert postgresql:// to postgresql+asyncpg://
+    # Render provides DATABASE_URL as postgresql:// but we need asyncpg driver
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
 # Create async engine
 engine = create_async_engine(
@@ -37,4 +44,3 @@ async def get_db() -> AsyncSession:
             yield session
         finally:
             await session.close()
-
