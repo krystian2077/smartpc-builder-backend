@@ -162,3 +162,19 @@ async def create_preset(
     await db.refresh(db_preset)
     return db_preset
 
+
+@router.delete("/{preset_id}", status_code=204)
+async def delete_preset(
+    preset_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a preset by ID"""
+    result = await db.execute(select(Preset).where(Preset.id == preset_id))
+    preset = result.scalar_one_or_none()
+    
+    if not preset:
+        raise HTTPException(status_code=404, detail="Preset not found")
+    
+    await db.delete(preset)
+    await db.commit()
+    return None
