@@ -146,35 +146,7 @@ async def create_preset(
         updated_at=datetime.utcnow().isoformat(),
     )
     db.add(db_preset)
-    
-    # Populate Many-to-Many relationship from component_map
-    if preset.component_map:
-        product_ids = list(preset.component_map.values())
-        # Fetch all products by UUIDs
-        result = await db.execute(
-            select(Product).where(Product.id.in_(product_ids))
-        )
-        products = result.scalars().all()
-        # Add products to preset relationship
-        db_preset.products = list(products)
-    
     await db.commit()
     await db.refresh(db_preset)
     return db_preset
 
-
-@router.delete("/{preset_id}", status_code=204)
-async def delete_preset(
-    preset_id: UUID,
-    db: AsyncSession = Depends(get_db),
-):
-    """Delete a preset by ID"""
-    result = await db.execute(select(Preset).where(Preset.id == preset_id))
-    preset = result.scalar_one_or_none()
-    
-    if not preset:
-        raise HTTPException(status_code=404, detail="Preset not found")
-    
-    await db.delete(preset)
-    await db.commit()
-    return None
