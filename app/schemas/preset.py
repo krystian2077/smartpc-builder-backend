@@ -24,6 +24,7 @@ class PresetCreate(BaseModel):
     reasoning: Optional[str] = None
     is_active: bool = True
     priority: int = 0
+    image_url: Optional[str] = None  # Add image URL support
 
 
 class PresetResponse(BaseModel):
