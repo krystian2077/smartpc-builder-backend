@@ -146,6 +146,18 @@ async def create_preset(
         updated_at=datetime.utcnow().isoformat(),
     )
     db.add(db_preset)
+    
+    # Populate Many-to-Many relationship from component_map
+    if preset.component_map:
+        product_ids = list(preset.component_map.values())
+        # Fetch all products by UUIDs
+        result = await db.execute(
+            select(Product).where(Product.id.in_(product_ids))
+        )
+        products = result.scalars().all()
+        # Add products to preset relationship
+        db_preset.products = list(products)
+    
     await db.commit()
     await db.refresh(db_preset)
     return db_preset

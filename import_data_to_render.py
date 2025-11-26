@@ -142,28 +142,29 @@ def upload_presets(presets: List[Dict[str, Any]], product_mapping: Dict[str, str
     
     for i, preset in enumerate(presets, 1):
         try:
-            # Map local product IDs to remote UUIDs by name
-            # First, get product names from local DB
+            # Map local product IDs to remote UUIDs by name and type
+            # First, get product names and types from local DB
             conn = sqlite3.connect(LOCAL_DB_PATH)
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
             
             placeholders = ','.join('?' * len(preset['product_ids']))
-            cursor.execute(f"SELECT name FROM products WHERE id IN ({placeholders})", preset['product_ids'])
-            product_names = [row['name'] for row in cursor.fetchall()]
+            cursor.execute(f"SELECT name, type FROM products WHERE id IN ({placeholders})", preset['product_ids'])
+            products_data = [(row['name'], row['type']) for row in cursor.fetchall()]
             conn.close()
             
-            # Map to remote UUIDs
-            remote_product_ids = []
-            for name in product_names:
+            # Build component_map: {type: product_uuid}
+            component_map = {}
+            for name, product_type in products_data:
                 if name in remote_products:
-                    remote_product_ids.append(remote_products[name])
+                    component_map[product_type.upper()] = remote_products[name]
                 else:
                     print(f"  ⚠ Warning: Product '{name}' not found in remote database")
             
-            # Update preset with remote product IDs
+            # Update preset with component_map and remove product_ids
             preset_data = preset.copy()
-            preset_data['product_ids'] = remote_product_ids
+            del preset_data['product_ids']  # Remove this field
+            preset_data['component_map'] = component_map  # Add component_map
             
             response = requests.post(
                 f"{RENDER_API_URL}/presets",
